@@ -24,7 +24,7 @@ use with an output file:
 
   pdf = PDF::PD4ML.new
 
-  pdf.add_content "<h1>Hello World!</h1>"
+  pdf.add_content "&lt;h1&gt;Hello World!&lt;/h1&gt;"
 
   pdf.pdf_password = "quentin"
 
