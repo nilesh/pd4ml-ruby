@@ -5,7 +5,6 @@ that converts HTML input files into formatted HTML, PDF or PostScript
 output.
 
 Home: http://nilesh.github.com/pdf-pd4ml
-
 PD4ML Home: http://www.pd4ml.com/
 
 Copyright 2009, Nilesh Chaudhari.
