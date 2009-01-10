@@ -17,49 +17,33 @@ module PDF
                          ISOB1 ISOB2 ISOB3 ISOB4 ISOB5 LEDGER LEGAL LETTER 
                          NOTE TABLOID)
 
-    @@basic_options = [ :allow_annotate, :allow_assembly, 
-                        :allow_content_extraction, :allow_copy, 
-                        :allow_degraded_print, :allow_filling_forms, 
-                        :allow_modify, :allow_print]
+    PAGE_ORIENTATIONS = %w(PORTRAIT LANDSCAPE)
+    
+    BOOKMARK_ELEMENTS = %w(HEADINGS ANCHORS)
 
-    # @@extra_options = [:duplex, :embedfonts, :encryption,
-    #                    :links, :localfiles, :numbered, :pscommands, :strict, :title,
-    #                    :toc, :xrxcomments]
-    # @@special_options = [:compression, :jpeg]
+    @@java_path ||= "/usr/bin/java"
+    @@jar_path  ||= "#{Rails.root}/extras/pd4ml/pd4ml.jar"
+    @@font_path ||= "#{Rails.root}/extras/fonts"
 
-    @@all_options = @@basic_options # + @@extra_options + @@special_options
-
-    # The path to HTMLDOC in the system. E.g, <code>/usr/bin/html</code> or
-    # <code>"C:\Program Files\HTMLDOC\HTMLDOC.exe"</code>.
-    @@java_path = "java"
-    @@jar_path = "#{Rails.root}/extras/pd4ml/pd4ml.jar"
-
-    # The last result from the generation of the output file(s). It's
-    # a hash comprising three pairs:
-    # <tt>bytes</tt>:: The number of bytes generated in the last request or <tt>nil</tt>
-    # <tt>pages</tt>:: The number of pages generated in the last request or <tt>nil</tt>
-    # <tt>output</tt>:: The raw output of the command
     attr_reader :result
-
-    # The last error messages generate by the command. It's a hash
-    # where they key represents the error number, and the value
-    # represents the error message. If the error number is zero,
-    # HTMLDOC was called with invalid parameters. Errors can happen
-    # even if generation succeeds, for example, if an image can't be
-    # found in the course of the generation.
     attr_reader :errors
 
     def self.default_options
       @default_options ||= {
-        :dimension                  => 'A4',
+        :html_width                 => 800,
+        :page_dimension             => 'A4',
+        :page_orientation           => 'PORTRAIT',
+        :inset_unit                 => 'mm',
+        :inset_left                 => 20,
+        :inset_top                  => 10,
+        :inset_right                => 10,
+        :inset_bottom               => 10,
+        :bookmark_elements          => 'HEADINGS',
         :allow_annotate             => true, 
-        :allow_assembly             => true, 
-        :allow_content_extraction   => true, 
         :allow_copy                 => true, 
-        :allow_degraded_print       => false, 
-        :allow_filling_forms        => true, 
         :allow_modify               => true, 
-        :allow_print                => true
+        :allow_print                => true,
+        :debug                      => false
       }
     end
 
@@ -69,9 +53,10 @@ module PDF
     # contants.
     def initialize(options = {})
       @options = self.class.default_options.merge(options)
-      @pages = []
+      @content = ""
+      @command_options = ""
+      @pdf_password = nil
       @tempfiles = []
-      reset
     end
 
     # Creates a blank PD4ML wrapper and passes it to a block. When
@@ -105,6 +90,18 @@ module PDF
     def self.java_path=(value)
       @@java_path = value
     end
+    
+    def self.font_path
+      @@font_path
+    end
+    
+    def self.font_path=(value)
+      @@font_path = value
+    end
+    
+    def pdf_password=(value)
+      @pdf_password = value
+    end
 
     # Sets an option for the wrapper. Only valid PD4ML options will
     # be accepted. The name of the option is a symbol, but the value
@@ -113,162 +110,121 @@ module PDF
     # negated counterparts, like <tt>:encryption</tt>, can be set
     # using :no or :none as the value.
     def set_option(option, value)
-      if @@all_options.include?(option)
-        if value
+      if @default_options.keys.include?(option)
+        if value_valid_for_option?(option, value)
           @options[option] = value
-        else
-          @options.delete(option)
         end
       else
         raise PD4MLException.new("Invalid option #{option.to_s}")
       end
     end
 
-    # Sets the header. It's the same as set_option :header, value.
-    def header(value)
-      set_option :header, value
+    def add_content(html_content)
+      @content << html_content
     end
 
-    # Sets the footer. It's the same as set_option :footer, value.
-    def footer(value)
-      set_option :footer, value
-    end
 
-    # Adds a page for generation. The page can be a URL beginning with
-    # either <tt>http://</tt> or <tt>https://</tt>; a file, which will
-    # be verified for existence; or any text.
-    def add_page(page)
-      if /^(http|https)/ =~ page
-        type = :url
-      elsif File.exists?(page)
-        type = :file
-      else
-        type = :text
-      end
-      @pages << { :type => type, :value => page }
-    end
-
-    alias :<< :add_page
-
-    # Adds a title page for generation.
-    def add_title_page(body)
-      t = Tempfile.new("htmldoc.temp")
-      t.binmode
-      t.write(body)
-      t.flush
-      @tempfiles << t
-      set_option :titlefile, t.path
-    end
-
-    # Invokes HTMLDOC and generates the output. If an output directory
+    # Invokes PD4ML and generates the output. If an output directory
     # or file is provided, the method will return <tt>true</tt> or
     # <tt>false</tt> to indicate completion. If no output directory or
     # file is provided, it will return a string representing the
-    # entire output. Generate will raise a PDF::HTMLDocException if
+    # entire output. Generate will raise a PDF::PD4MLException if
     # the program path can't be found.
     def generate
-      tempfile = nil
-      unless @options[:outdir] || @options[:outfile]
-        tempfile = Tempfile.new("pd4ml.temp", "#{Rails.root}/tmp/")
-        @options[:outfile] = tempfile.path
-      end
-      execute
-      if @result[:pages]
-        if tempfile
-          File.open(tempfile.path, "rb") { |f| f.read }
-        else
-          true
-        end
-      else
-        false
-      end
-    ensure
-      if tempfile
-        tempfile.close
-        @options[:outfile] = nil
-      end
-      @tempfiles.each { |t| t.close }
-    end
-
-    private
-
-    def execute
-      # Reset internal variables
-      reset
-      
       # Check if required files are present
-      raise PD4MLException.new("Invalid jar path: #{@@jar_path}") unless File.exist? @@jar_path
-      raise PD4MLException.new("Invalid java path: #{@@java_path}") unless File.exist? @@java_path
+      raise PD4MLException.new("Invalid jar path: #{@@jar_path}") unless File.exists? @@jar_path
+      raise PD4MLException.new("Invalid java path: #{@@java_path}") unless File.exists? @@java_path
+      raise PD4MLException.new("Invalid font path: #{@@font_path}") unless File.exists? @@font_path
       
       # Execute
-      command = "#{@@java_path} -Xmx512m -Djava.awt.headless=true -cp #{@@jar_path}:.:#{File.dirname(__FILE__)} Pd4Ruby #{get_command_options} #{get_command_pages} 2>&1"
-      @result[:command] = command
-      result = IO.popen(command) { |s| s.read }
+      logger.info "[PD4ML] command: #{self.pd4ml_command}" if @options[:debug]
+      result = IO.popen(self.pd4ml_command) { |s| s.read }
+
       # Check whether the program really was executed
       if $?.exitstatus == 127
         raise PD4MLException.new("Sorry. Could not run PD4ML. Giving up!")
       else
-        @result[:output] = result
-        result.split("\n").each do |line|
-          case line
-            when /^BYTES: (\d+)/
-              @result[:bytes] = $1.to_i
-            when /^PAGES: (\d+)/
-              @result[:pages] = $1.to_i
-            when /^ERROR: (.*)$/
-              @errors[0] = $1.strip
-            when /^ERR(\d+): (.*)$/
-              @errors[$1.to_i] = $2.strip
-          end
-        end
+        return result
       end
+
+    ensure
+      @tempfiles.each { |t| t.close }
+    end
+    
+    def save_to(file_path)
+      File.open(file_path, 'w') {|f| f.write(self.generate) }
     end
 
-    def reset
-      @result = { :bytes => nil, :pages => nil, :output => nil }
-      @errors = { }
+    def input_file
+      t = Tempfile.new("pd4ml.html", "#{Rails.root}/tmp")
+      t.binmode
+      t.write(@content)
+      t.flush
+      @tempfiles << t
+      t.path
+    end
+    
+    def pd4ml_command
+      "#{@@java_path} -Xmx512m -Djava.awt.headless=true -cp #{@@jar_path}:.:#{File.dirname(__FILE__)} Pd4Ruby #{self.command_parameters} 2>&1"
     end
 
-    def get_command_pages
-      pages = @pages.collect do |page|
-        case page[:type]
-          when :file, :url
-            page[:value]
-          else
-            t = Tempfile.new("htmldoc.temp")
-            t.binmode
-            t.write(page[:value])
-            t.flush
-            @tempfiles << t
-            t.path
-        end
-      end
-      pages.join(" ")
+    def command_parameters
+      command_options = ""
+      
+      command_options << "--file #{self.input_file} "
+      command_options << "--width #{@options[:html_width]} "
+      command_options << "--pagesize #{@options[:page_dimension]} "
+      command_options << "--orientation #{@options[:page_orientation]} "
+      command_options << "--permissions #{self.pdf_permissions} "
+      command_options << "--password #{@pdf_password} " unless @pdf_password.blank?
+      command_options << "--insets #{self.page_insets} "
+      command_options << "--bookmarks #{@options[:bookmark_elements]} "
+      command_options << "--ttf #{@@font_path}"
+      command_options << "--debug " if @options[:debug]
+      
+      command_options  
     end
-
-    def get_command_options
-      options = @options.dup.merge({ :format => @format })
-      options = options.collect { |key, value| get_final_value(key, value) }
-      options.sort.join(" ")
+    
+    # Builds permissions for the PDF encryption
+    # The permission flags are 65472 (decimal) or
+    # 1111111111000000 (binary).  Bits 0 and 1 are reserved (always 0), bit
+    # 2 is the print permission (0 here, meaning that printing is not
+    # allowed), and bits 3, 4, and 5, are the "modify", "copy text", and
+    # "add/edit annotations" permissions (all disallowed in this example).
+    # The higher bits are reserved.
+    def pdf_permissions
+      annotate  = @options[:allow_annotate] ? 0 : 1
+      print     = @options[:allow_print]    ? 0 : 1
+      copy      = @options[:allow_copy]     ? 0 : 1
+      modify    = @options[:allow_modify]   ? 0 : 1
+      permissions = "1111111111#{annotate}#{copy}#{modify}#{print}00".to_i(2)
+      logger.info "[PD4ML] permissions: #{permissions.to_s(2)}" if @options[:debug]
+      permissions
     end
-
-    def get_final_value(option, value)
-      option_name = "--" + option.to_s.gsub("_", "-")
-      if value.kind_of?(TrueClass)
-        option_name
-      elsif value.kind_of?(Hash)
-        items = value.collect { |name, contents| "#{name.to_s}=#{contents.to_s}" }
-        option_name + " '" + items.sort.join(";") + "'"
-      elsif @@basic_options.include?(option)
-        option_name + " " + value.to_s
-      elsif @@special_options.include?(option)
-        option_name + "=" + value.to_s
-      else
-        if [false, :no, :none].include?(value)
-          option_name.sub("--", "--no-")
-        else
-          option_name + " " + value.to_s
-        end
+    
+    # Builds the page insets string to be passed to the JAR file
+    def page_insets
+      "#{@options[:inset_top]},#{@options[:inset_left]},#{@options[:inset_bottom]},#{@options[:inset_right]},#{@options[:inset_unit]}"
+    end
+    
+    # Return true if the given value for the option is valid
+    def value_valid_for_option?(option, value)
+      case option
+        
+      when :html_width          then value.is_a? Fixnum
+      when :page_dimension      then PAGE_DIMENSIONS.include? value
+      when :page_orientation    then PAGE_ORIENTATIONS.include? value 
+      when :inset_unit          then %(mm pt).include? value
+      when :inset_left          then value.is_a? Fixnum
+      when :inset_top           then value.is_a? Fixnum
+      when :inset_right         then value.is_a? Fixnum
+      when :inset_bottom        then value.is_a? Fixnum
+      when :bookmark_elements   then BOOKMARK_ELEMENTS.include? value
+      when :allow_annotate      then [true, false].include? value 
+      when :allow_copy          then [true, false].include? value 
+      when :allow_modify        then [true, false].include? value 
+      when :allow_print         then [true, false].include? value 
+      when :debug               then [true, false].include? value  
       end
     end
 

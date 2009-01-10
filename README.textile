@@ -24,51 +24,20 @@ use with an output file:
 
   pdf = PDF::PD4ML.new
 
-  pdf.set_option :outfile, "/tmp/outfile.pdf"
-  pdf.set_option :bodycolor, :black
-  pdf.set_option :links, true
+  pdf.add_content "<h1>Hello World!</h1>"
 
-  pdf.header ".t."
+  pdf.pdf_password = "quentin"
 
-  pdf << "/var/doc/file1.html"
-  pdf << "/var/doc/file2.html"
-
-  pdf.footer ".1."
-
-  if pdf.generate 
-    puts "Successfully generated a PDF file"
-  end
-   
-A similar approach can be used for inline generation:
-
-  require "pd4ml"
-
-  document = PDF::PD4ML.create(PDF::PS) do |p|
-
-    p.set_option :bodycolor, :black
-    p.set_option :links, true
-
-    p.header ".t."
-
-    p << "http://example.org/index.html"
-    p << "http://localhost/test/data"
-
-    p << "/var/doc/file1.html"
-    p << "/var/doc/file2.html"
-
-    p << @report.to_html
-    p << "Some other text that will be incorporated in the report"
-
-    p.footer ".1."
-
-  end
+  pdf.save_to('output.pdf')
 
 In the example above, it's not necessary to call the <tt>generate</tt>
-method since it will be automatically invoked by the block.
+method since it will be automatically invoked by <tt>save_to</tt>.
 
 You can also configure the program path for PD4ML if it differs in
 your system.
 
   require "pd4ml"
 
-  PDF::PD4ML.jar_path = "\"C:\\Program Files\\PD4ML\pd4ml.jar""
+  PDF::PD4ML.jar_path = "#{Rails.root}/extras/pd4ml/pd4ml.jar"
+  PDF::PD4ML.java_path = "/usr/bin/java"
+  PDF::PD4ML.font_path = "#{Rails.root}/extras/fonts"
