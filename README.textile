@@ -21,13 +21,9 @@ Using PDF::PD4ML is trivial. The example below illustrates a simple
 use with an output file:
 
   require "pd4ml"
-
   pdf = PDF::PD4ML.new
-
   pdf.add_content "&lt;h1&gt;Hello World!&lt;/h1&gt;"
-
   pdf.pdf_password = "quentin"
-
   pdf.save_to('output.pdf')
 
 In the example above, it's not necessary to call the <tt>generate</tt>
@@ -35,8 +31,6 @@ method since it will be automatically invoked by <tt>save_to</tt>.
 
 You can also configure the program path for PD4ML if it differs in
 your system.
-
-  require "pd4ml"
 
   PDF::PD4ML.jar_path = "#{Rails.root}/extras/pd4ml/pd4ml.jar"
   PDF::PD4ML.java_path = "/usr/bin/java"
