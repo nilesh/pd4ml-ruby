@@ -1,4 +1,4 @@
-h2. PDF::PD4ML
+h1. PDF::PD4ML
 
 PDF::PD4ML is a wrapper around PD4ML, a commercial application
 that converts HTML input files into formatted HTML, PDF or PostScript
@@ -10,12 +10,12 @@ PD4ML Home: http://www.pd4ml.com/
 
 Copyright 2009, Nilesh Chaudhari.
 
-h3. License Notes
+h2. License Notes
 
 Please read the MIT-LICENSE file for licensing information on this
 library.
 
-h3. Usage
+h2. Usage
 
 Using PDF::PD4ML is trivial. The example below illustrates a simple
 use with an output file:
@@ -35,3 +35,7 @@ your system.
   PDF::PD4ML.jar_path = "#{Rails.root}/extras/pd4ml/pd4ml.jar"
   PDF::PD4ML.java_path = "/usr/bin/java"
   PDF::PD4ML.font_path = "#{Rails.root}/extras/fonts"
+
+h2. TODO
+
+Lots of things!
