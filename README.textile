@@ -1,6 +1,6 @@
-h1. PDF-PD4ML
+h1. PD4ML-Ruby
 
-PDF-PD4ML is a Rails plugin that uses PD4ML, a commercial Java library
+PD4ML-Ruby is a Ruby/Rails plugin that uses PD4ML, a commercial Java library
 to convert HTML input files into formatted PDF. 
 
 For more information on PD4ML visit "the website":http://www.pd4ml.com/.
@@ -10,7 +10,7 @@ comments are most welcome.
 
 h2. Usage
 
-Using PDF::PD4ML is trivial. The example below illustrates a simple
+Using PD4MLRuby is trivial. The example below illustrates a simple
 use which generates a PDF file and show it inline to the browser:
   
   html_content = <<-HTML
@@ -18,7 +18,7 @@ use which generates a PDF file and show it inline to the browser:
     <code><p>Look at the stuff I am not doing!</p></code>
   HTML
   
-  pdf = PDF::PD4ML.new(
+  pdf = PD4MLRuby.new(
     :bookmark_elements          => 'HEADINGS',
     :allow_annotate             => true, 
     :allow_copy                 => false, 
@@ -42,7 +42,7 @@ of the <tt>generate</tt> method.
 
   pdf.save_to "#{Rails.root}/public/hello.pdf"
     
-You can set the individual options also, instead of passing them as a hash to the new
+You can set the options individually also, instead of passing them as a hash to the new
 method:
 
   pdf.set_option :allow_print, true
@@ -73,9 +73,9 @@ For the detailed explanation of these options, refer to the
 You can customize the paths for the various external dependencies. You will need
 the java runtime, PD4ML library and fonts, if you are using an custom TTF fonts.  
 
-  PDF::PD4ML.jar_path = "#{Rails.root}/extras/pd4ml/pd4ml.jar"
-  PDF::PD4ML.java_path = "/usr/bin/java"
-  PDF::PD4ML.font_path = "#{Rails.root}/extras/fonts"
+  PD4MLRuby.jar_path = "#{Rails.root}/extras/pd4ml/pd4ml.jar"
+  PD4MLRuby.java_path = "/usr/bin/java"
+  PD4MLRuby.font_path = "#{Rails.root}/extras/fonts"
 
 
 h2. TODO
