@@ -19,11 +19,11 @@ use which generates a PDF file and show it inline to the browser:
   HTML
   
   pdf = PD4MLRuby.new(
-    :bookmark_elements          => 'HEADINGS',
-    :allow_annotate             => true, 
-    :allow_copy                 => false, 
-    :allow_modify               => false, 
-    :allow_print                => true
+    :bookmark_elements  => 'HEADINGS',
+    :allow_annotate     => true, 
+    :allow_copy         => false, 
+    :allow_modify       => false, 
+    :allow_print        => true
   )
   
   pdf << html_content
