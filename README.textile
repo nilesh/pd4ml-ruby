@@ -1,13 +1,11 @@
-h1. PDF::PD4ML
+h1. PDF-PD4ML
 
-PDF::PD4ML is a wrapper around PD4ML, a commercial application
-that converts HTML input files into formatted HTML, PDF or PostScript
-output.
+PDF-PD4ML is a Rails plugin that uses PD4ML, a commercial Java library
+to convert HTML input files into formatted PDF. 
 
-Home: http://nilesh.github.com/pdf-pd4ml
-PD4ML Home: http://www.pd4ml.com/
+For more information on PD4ML visit "the website":http://www.pd4ml.com/.
 
-Copyright 2009, Nilesh Chaudhari.
+Please give in your suggestions in the comments section.
 
 h2. License Notes
 
@@ -17,24 +15,75 @@ library.
 h2. Usage
 
 Using PDF::PD4ML is trivial. The example below illustrates a simple
-use with an output file:
+use which generates a PDF file and show it inline to the browser:
 
-  require "pd4ml"
-  pdf = PDF::PD4ML.new
-  pdf.add_content "&lt;h1&gt;Hello World!&lt;/h1&gt;"
-  pdf.pdf_password = "quentin"
-  pdf.save_to('output.pdf')
+  
+  html_content = <<-HTML
+    <code><h1>Whoops!</h1></code>
+    <code><p>Look at the stuff I am not doing!</p></code>
+  HTML
 
-In the example above, it's not necessary to call the <tt>generate</tt>
-method since it will be automatically invoked by <tt>save_to</tt>.
+  pdf = PDF::PD4ML.new(
+    :bookmark_elements          => 'HEADINGS',
+    :allow_annotate             => true, 
+    :allow_copy                 => false, 
+    :allow_modify               => false, 
+    :allow_print                => true
+  )
+  
+  pdf << html_content
+  
+  pdf.user_password = "quentin"
+  
+  send_data(pdf.generate,  
+    :type         => "application/pdf",
+    :filename     => "hello.pdf",
+    :disposition  => "attachment"
+  )
 
-You can also configure the program path for PD4ML if it differs in
-your system.
+If you want to save the file to a folder on the server itself, say the code
+was running in a batch job, you simply use the <tt>save_to</tt> method instead
+of the <tt>generate</tt> method.
+
+  pdf.save_to "#{Rails.root}/public/pdfs/hello.pdf"
+    
+You can set the individual options also, instead of passing them as a hash to the new
+method:
+
+  pdf.set_option :allow_print, true
+  pdf.set_option :html_width, 650
+
+The default options are as follows:
+
+  @@default_options = {
+    :html_width                 => 800,
+    :page_dimension             => 'A4',
+    :page_orientation           => 'PORTRAIT',
+    :inset_unit                 => 'mm',
+    :inset_left                 => 20,
+    :inset_top                  => 10,
+    :inset_right                => 10,
+    :inset_bottom               => 10,
+    :bookmark_elements          => 'HEADINGS',
+    :allow_annotate             => true, 
+    :allow_copy                 => true, 
+    :allow_modify               => true, 
+    :allow_print                => true,
+    :debug                      => false
+  }
+
+For the detailed explanation, refer to the "PD4ML documentation":http://pd4ml.com/support.htm
+
+You can customize the paths for the various external dependencies. You will need
+the java runtime, PD4ML library and fonts, if you are using an custom TTF fonts.  
 
   PDF::PD4ML.jar_path = "#{Rails.root}/extras/pd4ml/pd4ml.jar"
   PDF::PD4ML.java_path = "/usr/bin/java"
   PDF::PD4ML.font_path = "#{Rails.root}/extras/fonts"
 
+
 h2. TODO
 
 Lots of things!
+
+Copyright (c) 2009 Nilesh Chaudhari, released under the MIT license

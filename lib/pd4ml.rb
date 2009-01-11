@@ -21,41 +21,40 @@ module PDF
     
     BOOKMARK_ELEMENTS = %w(HEADINGS ANCHORS)
 
-    @@java_path ||= "/usr/bin/java"
+    # Set the default paths for the required files
+    @@java_path ||= "java"
     @@jar_path  ||= "#{Rails.root}/extras/pd4ml/pd4ml.jar"
     @@font_path ||= "#{Rails.root}/extras/fonts"
 
-    attr_reader :result
-    attr_reader :errors
+    # Set the default options
+    @@default_options ||= {
+      :html_width                 => 800,
+      :page_dimension             => 'A4',
+      :page_orientation           => 'PORTRAIT',
+      :inset_unit                 => 'mm',
+      :inset_left                 => 20,
+      :inset_top                  => 10,
+      :inset_right                => 10,
+      :inset_bottom               => 10,
+      :bookmark_elements          => 'HEADINGS',
+      :allow_annotate             => true, 
+      :allow_copy                 => true, 
+      :allow_modify               => true, 
+      :allow_print                => true,
+      :debug                      => false
+    }
 
-    def self.default_options
-      @default_options ||= {
-        :html_width                 => 800,
-        :page_dimension             => 'A4',
-        :page_orientation           => 'PORTRAIT',
-        :inset_unit                 => 'mm',
-        :inset_left                 => 20,
-        :inset_top                  => 10,
-        :inset_right                => 10,
-        :inset_bottom               => 10,
-        :bookmark_elements          => 'HEADINGS',
-        :allow_annotate             => true, 
-        :allow_copy                 => true, 
-        :allow_modify               => true, 
-        :allow_print                => true,
-        :debug                      => false
-      }
-    end
+    attr_writer :user_password
 
     # Creates a blank PD4ML wrapper, using <tt>format</tt> to
     # indicate whether the output will be HTML, PDF or PS. The format
     # defaults to PDF, and can change using one of the module
     # contants.
-    def initialize(options = {})
-      @options = self.class.default_options.merge(options)
+    def initialize(options={})
+      @options = @@default_options.merge(options)
       @content = ""
       @command_options = ""
-      @pdf_password = nil
+      @user_password = nil
       @tempfiles = []
     end
 
@@ -63,46 +62,44 @@ module PDF
     # the block finishes running, the <tt>generate</tt> method is
     # automatically called. The result of <tt>generate</tt> is then
     # passed back to the application.
-    def self.create(&block)
-      pdf = PD4ML.new
+    def self.create(options={}, &block)
+      pdf = PD4ML.new(options)
       if block_given?
         yield pdf
         pdf.generate
       end
     end
-
-    # Gets the current path for the PD4ML jar file.
-    def self.jar_path
-      @@jar_path
-    end
-
-    # Sets the current path for the PD4ML jar file.
-    def self.jar_path=(value)
-      @@jar_path = value
+    
+    # Creates a blank PD4ML wrapper and passes it to a block. When
+    # the block finishes running, the <tt>generate</tt> method is
+    # automatically called. The result of <tt>generate</tt> is then
+    # stored at the specified file path.
+    def self.create_and_save(file_path, options={}, &block)
+      pdf = PD4ML.new(options)
+      if block_given?
+        yield pdf
+        File.open(file_path, 'w') {|f| f.write(pdf.generate) }
+      end
     end
     
-    # Gets the current path for the java executable.
-    def self.java_path
-      @@java_path
-    end
-    
-    # Sets the current path for the java executable.
-    def self.java_path=(value)
-      @@java_path = value
-    end
-    
-    def self.font_path
-      @@font_path
-    end
-    
-    def self.font_path=(value)
-      @@font_path = value
-    end
-    
-    def pdf_password=(value)
-      @pdf_password = value
+    # Save the PDF::PD4ML object to a PDF file.
+    def save_to(file_path)
+      File.open(file_path, 'w') {|f| f.write(self.generate) }
     end
 
+    # Define methods to get and set the java_path, jar_path and the 
+    # font_path global variables
+    %w(jar_path java_path font_path).each do |attr|
+      eval <<-METHOD
+        def self.#{attr}
+          @@#{attr}
+        end
+        def self.#{attr}=(value)
+          @@#{attr} = value
+        end
+      METHOD
+    end
+  
     # Sets an option for the wrapper. Only valid PD4ML options will
     # be accepted. The name of the option is a symbol, but the value
     # can be anything. Invalid options will throw an exception. To
@@ -110,7 +107,7 @@ module PDF
     # negated counterparts, like <tt>:encryption</tt>, can be set
     # using :no or :none as the value.
     def set_option(option, value)
-      if @default_options.keys.include?(option)
+      if @@default_options.keys.include?(option)
         if value_valid_for_option?(option, value)
           @options[option] = value
         end
@@ -123,6 +120,7 @@ module PDF
       @content << html_content
     end
 
+    alias_method :<<, :add_content
 
     # Invokes PD4ML and generates the output. If an output directory
     # or file is provided, the method will return <tt>true</tt> or
@@ -137,7 +135,7 @@ module PDF
       raise PD4MLException.new("Invalid font path: #{@@font_path}") unless File.exists? @@font_path
       
       # Execute
-      logger.info "[PD4ML] command: #{self.pd4ml_command}" if @options[:debug]
+      # logger.info "[PD4ML] command: #{self.pd4ml_command}" if @options[:debug]
       result = IO.popen(self.pd4ml_command) { |s| s.read }
 
       # Check whether the program really was executed
@@ -151,10 +149,10 @@ module PDF
       @tempfiles.each { |t| t.close }
     end
     
-    def save_to(file_path)
-      File.open(file_path, 'w') {|f| f.write(self.generate) }
-    end
-
+  private  
+    
+    # Create a temp file from the content and return the path to the
+    # temp file
     def input_file
       t = Tempfile.new("pd4ml.html", "#{Rails.root}/tmp")
       t.binmode
@@ -164,10 +162,12 @@ module PDF
       t.path
     end
     
+    # Build the PD4ML command
     def pd4ml_command
-      "#{@@java_path} -Xmx512m -Djava.awt.headless=true -cp #{@@jar_path}:.:#{File.dirname(__FILE__)} Pd4Ruby #{self.command_parameters} 2>&1"
+      "#{@@java_path} -Xmx512m -Djava.awt.headless=true -cp #{@@jar_path}:.:#{File.dirname(__FILE__)} Pd4Ruby #{command_parameters} 2>&1"
     end
 
+    # Build the PD4ML command parameters
     def command_parameters
       command_options = ""
       
@@ -176,7 +176,7 @@ module PDF
       command_options << "--pagesize #{@options[:page_dimension]} "
       command_options << "--orientation #{@options[:page_orientation]} "
       command_options << "--permissions #{self.pdf_permissions} "
-      command_options << "--password #{@pdf_password} " unless @pdf_password.blank?
+      command_options << "--password #{@user_password} " unless @user_password.blank?
       command_options << "--insets #{self.page_insets} "
       command_options << "--bookmarks #{@options[:bookmark_elements]} "
       command_options << "--ttf #{@@font_path}"
@@ -193,12 +193,12 @@ module PDF
     # "add/edit annotations" permissions (all disallowed in this example).
     # The higher bits are reserved.
     def pdf_permissions
-      annotate  = @options[:allow_annotate] ? 0 : 1
-      print     = @options[:allow_print]    ? 0 : 1
-      copy      = @options[:allow_copy]     ? 0 : 1
-      modify    = @options[:allow_modify]   ? 0 : 1
+      annotate  = @options[:allow_annotate] ? 1 : 0
+      print     = @options[:allow_print]    ? 1 : 0
+      copy      = @options[:allow_copy]     ? 1 : 0
+      modify    = @options[:allow_modify]   ? 1 : 0
       permissions = "1111111111#{annotate}#{copy}#{modify}#{print}00".to_i(2)
-      logger.info "[PD4ML] permissions: #{permissions.to_s(2)}" if @options[:debug]
+      # logger.info "[PD4ML] permissions: #{permissions.to_s(2)}" if @options[:debug]
       permissions
     end
     
