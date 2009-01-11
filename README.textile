@@ -22,7 +22,7 @@ use which generates a PDF file and show it inline to the browser:
     <code><h1>Whoops!</h1></code>
     <code><p>Look at the stuff I am not doing!</p></code>
   HTML
-
+  
   pdf = PDF::PD4ML.new(
     :bookmark_elements          => 'HEADINGS',
     :allow_annotate             => true, 
@@ -56,20 +56,20 @@ method:
 The default options are as follows:
 
   @@default_options = {
-    :html_width                 => 800,
-    :page_dimension             => 'A4',
-    :page_orientation           => 'PORTRAIT',
-    :inset_unit                 => 'mm',
-    :inset_left                 => 20,
-    :inset_top                  => 10,
-    :inset_right                => 10,
-    :inset_bottom               => 10,
-    :bookmark_elements          => 'HEADINGS',
-    :allow_annotate             => true, 
-    :allow_copy                 => true, 
-    :allow_modify               => true, 
-    :allow_print                => true,
-    :debug                      => false
+    :html_width         => 800,
+    :page_dimension     => 'A4',
+    :page_orientation   => 'PORTRAIT',
+    :inset_unit         => 'mm',
+    :inset_left         => 20,
+    :inset_top          => 10,
+    :inset_right        => 10,
+    :inset_bottom       => 10,
+    :bookmark_elements  => 'HEADINGS',
+    :allow_annotate     => true, 
+    :allow_copy         => true, 
+    :allow_modify       => true, 
+    :allow_print        => true,
+    :debug              => false
   }
 
 For the detailed explanation, refer to the "PD4ML documentation":http://pd4ml.com/support.htm
