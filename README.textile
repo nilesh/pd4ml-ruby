@@ -74,9 +74,7 @@ You can customize the paths for the various external dependencies. You will need
 the java runtime, PD4ML library and fonts, if you are using an custom TTF fonts. 
 Add these lines to your initializers or environment config file:
 
-  #
-  # RAILS_ROOT/config/initializers/pd4ml-ruby.rb
-  #
+<tt>RAILS_ROOT/config/initializers/pd4ml-ruby.rb:</tt>
   PD4MLRuby.jar_path = "#{Rails.root}/extras/pd4ml/pd4ml.jar"
   PD4MLRuby.java_path = "/usr/bin/java"
   PD4MLRuby.font_path = "#{Rails.root}/extras/fonts"
