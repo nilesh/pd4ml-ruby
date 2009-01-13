@@ -10,7 +10,7 @@ comments are most welcome.
 
 h2. Usage
 
-Using PD4MLRuby is trivial. The example below illustrates a simple
+Using PD4ML-Ruby is trivial. The example below illustrates a simple
 use which generates a PDF file and show it inline to the browser:
   
   html_content = <<-HTML
@@ -18,12 +18,12 @@ use which generates a PDF file and show it inline to the browser:
     <code><p>Look at the stuff I am not doing!</p></code>
   HTML
   
-  pdf = PD4MLRuby.new(
-    :bookmark_elements  => 'HEADINGS',
-    :allow_annotate     => true, 
-    :allow_copy         => false, 
-    :allow_modify       => false, 
-    :allow_print        => true
+  pdf = PD4ML.new(
+    :bookmark_elements          => 'HEADINGS',
+    :allow_annotate             => true, 
+    :allow_copy                 => false, 
+    :allow_modify               => false, 
+    :allow_print                => true
   )
   
   pdf << html_content
@@ -71,14 +71,11 @@ For the detailed explanation of these options, refer to the
 "PD4ML documentation":http://pd4ml.com/support.htm.
 
 You can customize the paths for the various external dependencies. You will need
-the java runtime, PD4ML library and fonts, if you are using an custom TTF fonts. 
-Add these lines to your initializers or environment config file:
+the java runtime, PD4ML library and fonts, if you are using an custom TTF fonts.  
 
-<tt>RAILS_ROOT/config/initializers/pd4ml-ruby.rb:</tt>
-
-  PD4MLRuby.jar_path = "#{Rails.root}/extras/pd4ml/pd4ml.jar"
-  PD4MLRuby.java_path = "/usr/bin/java"
-  PD4MLRuby.font_path = "#{Rails.root}/extras/fonts"
+  PD4ML.jar_path = "#{Rails.root}/extras/pd4ml/pd4ml.jar"
+  PD4ML.java_path = "/usr/bin/java"
+  PD4ML.font_path = "#{Rails.root}/extras/fonts"
 
 
 h2. TODO

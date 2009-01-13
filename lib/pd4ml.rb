@@ -7,7 +7,7 @@ class PD4MLException < StandardError; end
 # The wrapper class around HTMLDOC, providing methods for setting
 # the options for the application and retriving the generate output
 # either as a file, diretory or string.
-class PD4MLRuby
+class PD4ML
 
   VERSION = "0.1.0"
 
@@ -61,7 +61,7 @@ class PD4MLRuby
   # automatically called. The result of <tt>generate</tt> is then
   # passed back to the application.
   def self.create(options={}, &block)
-    pdf = PD4MLRuby.new(options)
+    pdf = PD4ML.new(options)
     if block_given?
       yield pdf
       pdf.generate
@@ -73,7 +73,7 @@ class PD4MLRuby
   # automatically called. The result of <tt>generate</tt> is then
   # stored at the specified file path.
   def self.create_and_save(file_path, options={}, &block)
-    pdf = PD4MLRuby.new(options)
+    pdf = PD4ML.new(options)
     if block_given?
       yield pdf
       File.open(file_path, 'w') {|f| f.write(pdf.generate) }
@@ -134,7 +134,7 @@ class PD4MLRuby
     
     # Execute
     # logger.info "[PD4ML] command: #{self.pd4ml_command}" if @options[:debug]
-    result = IO.popen(self.pd4ml_command) { |s| s.read }
+    result = IO.popen(pd4ml_command) { |s| s.read }
 
     # Check whether the program really was executed
     if $?.exitstatus == 127
@@ -169,13 +169,13 @@ private
   def command_parameters
     command_options = ""
     
-    command_options << "--file #{self.input_file} "
+    command_options << "--file #{input_file} "
     command_options << "--width #{@options[:html_width]} "
     command_options << "--pagesize #{@options[:page_dimension]} "
     command_options << "--orientation #{@options[:page_orientation]} "
-    command_options << "--permissions #{self.pdf_permissions} "
+    command_options << "--permissions #{pdf_permissions} "
     command_options << "--password #{@user_password} " unless @user_password.blank?
-    command_options << "--insets #{self.page_insets} "
+    command_options << "--insets #{page_insets} "
     command_options << "--bookmarks #{@options[:bookmark_elements]} "
     command_options << "--ttf #{@@font_path}"
     command_options << "--debug " if @options[:debug]
