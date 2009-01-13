@@ -17,6 +17,8 @@ use which generates a PDF file and show it inline to the browser:
     <code><h1>Whoops!</h1></code>
     <code><p>Look at the stuff I am not doing!</p></code>
   HTML
+
+Create the PDF object:
   
   pdf = PD4ML.new(
     :bookmark_elements          => 'HEADINGS',
@@ -25,10 +27,16 @@ use which generates a PDF file and show it inline to the browser:
     :allow_modify               => false, 
     :allow_print                => true
   )
+
+Add the HTML content:
   
   pdf << html_content
+
+Set the user password, if needed:
   
   pdf.user_password = "quentin"
+
+Generate and send the file to the browser:
   
   send_data(pdf.generate,  
     :type         => "application/pdf",
@@ -71,7 +79,9 @@ For the detailed explanation of these options, refer to the
 "PD4ML documentation":http://pd4ml.com/support.htm.
 
 You can customize the paths for the various external dependencies. You will need
-the java runtime, PD4ML library and fonts, if you are using an custom TTF fonts.  
+the java runtime, PD4ML library and fonts, if you are using an custom TTF fonts.
+
+<tt>RAILS_ROOT/config/initializers/pd4ml-ruby.rb</tt>:
 
   PD4ML.jar_path = "#{Rails.root}/extras/pd4ml/pd4ml.jar"
   PD4ML.java_path = "/usr/bin/java"
