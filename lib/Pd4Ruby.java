@@ -27,8 +27,8 @@ public class Pd4Ruby {
 	  "  [--orientation <PORTRAIT|LANDSCAPE>] \\\n" + 
 	  "  [--insets <T,L,B,R,><mm|pt>] \\\n" + 
 	  "  [--ttf <ttf_fonts_dir>] \\\n" +
-	  "  [--header <html_text>] \\\n" +
-	  "  [--footer <html_text>] \\\n" +
+	  "  [--header '<html_text>'] \\\n" +
+	  "  [--footer '<html_text>'] \\\n" +
 	  "  [--debug]";
 	
 	public static void main(String[] args) throws Exception {
@@ -44,6 +44,8 @@ public class Pd4Ruby {
 		String insets = null;
 		String ttf = null;
 		String password = null;
+		String header = null;
+		String footer = null;
 
 		boolean formatSet = false;
 		
@@ -148,6 +150,28 @@ public class Pd4Ruby {
 				continue;
 			}
 			
+			if ( "--header".equals( args[i] ) ) {
+				++i;
+				if ( i == args.length ) {
+					System.out.println("invalid parameter: missing header text");
+					System.out.println( USAGE );
+					return; 
+				}
+				header = args[i];
+				continue;
+			}
+			
+			if ( "--footer".equals( args[i] ) ) {
+				++i;
+				if ( i == args.length ) {
+					System.out.println("invalid parameter: missing footer text");
+					System.out.println( USAGE );
+					return; 
+				}
+				footer = args[i];
+				continue;
+			}
+						
 			if ( "--debug".equals( args[i] ) ) {
 				debug = 1;
 				continue;
@@ -182,10 +206,10 @@ public class Pd4Ruby {
 		}
 		
 		Pd4Ruby converter = new Pd4Ruby();
-		converter.generatePDF( url, file, width, pagesize, permissions, password, bookmarks, orientation, insets, ttf, debug ); 
+		converter.generatePDF( url, file, width, pagesize, permissions, password, bookmarks, orientation, insets, ttf, header, footer, debug ); 
 	}
 
-	private void generatePDF(String inputUrl, String inputFile, int htmlWidth, String pageFormat, int permissions, String password, String bookmarks, String orientation, String insets, String fontsDir, int debug)
+	private void generatePDF(String inputUrl, String inputFile, int htmlWidth, String pageFormat, int permissions, String password, String bookmarks, String orientation, String insets, String fontsDir, String headerBody, String footerBody, int debug)
 			throws Exception {
 
 		PD4ML pd4ml = new PD4ML();
@@ -241,6 +265,20 @@ public class Pd4Ruby {
 
 		if ( fontsDir != null && fontsDir.length() > 0 ) {
 			pd4ml.useTTF( fontsDir, true );
+		}
+		
+		if ( headerBody != null && headerBody.length() > 0 ) {
+			PD4PageMark header = new PD4PageMark();
+			header.setAreaHeight( -1 ); // autocompute
+			header.setHtmlTemplate( headerBody ); // autocompute
+			pd4ml.setPageHeader( header );
+		}
+		
+		if ( footerBody != null && footerBody.length() > 0 ) {
+			PD4PageMark footer = new PD4PageMark();
+			footer.setAreaHeight( -1 ); // autocompute
+			footer.setHtmlTemplate( headerBody ); // autocompute
+			pd4ml.setPageFooter( footer );
 		}
 
     if ( debug != 0 ) {

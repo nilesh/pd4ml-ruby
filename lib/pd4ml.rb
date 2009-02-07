@@ -1,4 +1,5 @@
 require "tempfile"
+require 'logger'
 
 # Exception class representing an internal error in the HTMLDoc
 # class.
@@ -39,7 +40,39 @@ class PD4ML
     :allow_copy                 => true, 
     :allow_modify               => true, 
     :allow_print                => true,
-    :debug                      => false
+    :debug                      => false,
+    :header => {
+      :area_height                => -1,
+      :color                      => '#000000',
+      :font                       => 'Helvetica',
+      :font_size                  => '12',
+      :html_template              => '${title}',
+      :initial_page_number        => 1,
+      :page_background_color      => nil,
+      :page_background_image_url  => nil,
+      :page_number_alignment      => nil,
+      :page_number_template       => nil,
+      :pages_to_skip              => nil,
+      :title_alignment            => nil,
+      :title_template             => nil,
+      :watermark                  => nil
+    },
+    :footer => {
+      :area_height                => -1,
+      :color                      => '#000000',
+      :font                       => 'Helvetica',
+      :font_size                  => '12',
+      :html_template              => '${page} of ${pages}',
+      :initial_page_number        => 1,
+      :page_background_color      => nil,
+      :page_background_image_url  => nil,
+      :page_number_alignment      => nil,
+      :page_number_template       => nil,
+      :pages_to_skip              => nil,
+      :title_alignment            => nil,
+      :title_template             => nil,
+      :watermark                  => nil
+    }
   }
 
   attr_writer :user_password
@@ -76,7 +109,7 @@ class PD4ML
     pdf = PD4ML.new(options)
     if block_given?
       yield pdf
-      File.open(file_path, 'w') {|f| f.write(pdf.generate) }
+      pdf.save_to(file_path)
     end
   end
   
@@ -133,7 +166,7 @@ class PD4ML
     raise PD4MLException.new("Invalid font path: #{@@font_path}") unless File.exists? @@font_path
     
     # Execute
-    # logger.info "[PD4ML] command: #{self.pd4ml_command}" if @options[:debug]
+    logger.info "[PD4ML] command: #{pd4ml_command}" if @options[:debug]
     result = IO.popen(pd4ml_command) { |s| s.read }
 
     # Check whether the program really was executed
@@ -162,7 +195,9 @@ private
   
   # Build the PD4ML command
   def pd4ml_command
-    "#{@@java_path} -Xmx512m -Djava.awt.headless=true -cp #{@@jar_path}:.:#{File.dirname(__FILE__)} Pd4Ruby #{command_parameters} 2>&1"
+    class_path = "#{@@jar_path}:.:#{File.dirname(__FILE__)}"
+    class_path = "\"#{@@jar_path}\";\"#{File.dirname(__FILE__)}\"" if RUBY_PLATFORM =~ /mswin/
+    "#{@@java_path} -Xmx512m -Djava.awt.headless=true -cp #{class_path} Pd4Ruby #{command_parameters} 2>&1"
   end
 
   # Build the PD4ML command parameters
@@ -177,7 +212,11 @@ private
     command_options << "--password #{@user_password} " unless @user_password.blank?
     command_options << "--insets #{page_insets} "
     command_options << "--bookmarks #{@options[:bookmark_elements]} "
-    command_options << "--ttf #{@@font_path}"
+    command_options << "--ttf #{@@font_path} "
+    
+    command_options << header_options unless header_options.blank?
+    command_options << footer_options unless footer_options.blank?
+    
     command_options << "--debug " if @options[:debug]
     
     command_options  
@@ -196,7 +235,7 @@ private
     copy      = @options[:allow_copy]     ? 1 : 0
     modify    = @options[:allow_modify]   ? 1 : 0
     permissions = "1111111111#{annotate}#{copy}#{modify}#{print}00".to_i(2)
-    # logger.info "[PD4ML] permissions: #{permissions.to_s(2)}" if @options[:debug]
+    logger.info "[PD4ML] permissions: #{permissions.to_s(2)}" if @options[:debug]
     permissions
   end
   
@@ -224,6 +263,33 @@ private
     when :allow_print         then [true, false].include? value 
     when :debug               then [true, false].include? value  
     end
+  end
+  
+  def header_options
+    return if @options[:header].blank?
+    head_options = "--header '"
+    @options[:header].each do |key, value|
+      unless value.blank?
+        head_options << ""
+      end
+    end
+    head_options << "' "
+  end
+  
+  def footer_options
+    return if @options[:footer].blank?
+    foot_options = "--footer '"
+    @options[:footer].each do |key, value|
+      unless value.blank?
+        foot_options << ""
+      end
+    end
+    foot_options << "' "
+  end
+  
+  # Use Rails' default logger for debug commands
+  def logger
+    RAILS_DEFAULT_LOGGER
   end
 
 end
