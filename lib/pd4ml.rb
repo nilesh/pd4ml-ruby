@@ -204,7 +204,7 @@ private
   def command_parameters
     command_options = ""
     
-    command_options << "--file #{input_file} "
+    command_options << "--file \"#{input_file}\" "
     command_options << "--width #{@options[:html_width]} "
     command_options << "--pagesize #{@options[:page_dimension]} "
     command_options << "--orientation #{@options[:page_orientation]} "
@@ -212,7 +212,7 @@ private
     command_options << "--password #{@user_password} " unless @user_password.blank?
     command_options << "--insets #{page_insets} "
     command_options << "--bookmarks #{@options[:bookmark_elements]} "
-    command_options << "--ttf #{@@font_path} "
+    command_options << "--ttf \"#{@@font_path}\" "
     
     command_options << header_options unless header_options.blank?
     command_options << footer_options unless footer_options.blank?
