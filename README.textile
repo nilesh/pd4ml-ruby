@@ -87,6 +87,11 @@ the java runtime, PD4ML library and fonts, if you are using an custom TTF fonts.
   PD4ML.java_path = "/usr/bin/java"
   PD4ML.font_path = "#{Rails.root}/extras/fonts"
 
+Before using any fonts, you need to run this rake task:
+
+  rake pdf:build_fonts
+
+This creates a @pd4fonts.properties@ file in the fonts directory. This file is required for identifying font names.
 
 h2. TODO
 
