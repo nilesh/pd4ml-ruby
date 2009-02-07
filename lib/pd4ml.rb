@@ -127,6 +127,7 @@ class PD4ML
       end
       def self.#{attr}=(value)
         @@#{attr} = value
+        #{"self.build_font_information" if attr == 'font_path'}
       end
     METHOD
   end
@@ -180,6 +181,27 @@ class PD4ML
     @tempfiles.each { |t| t.close }
   end
   
+  
+  # Builds the pd4fonts.properties file in the fonts directory.
+  # This file is required for PD4ml to identify font names.
+  def self.build_font_information
+    raise PD4MLException.new("Invalid font path: #{@@font_path}") unless File.exists? @@font_path
+    
+    # Font build comand
+    font_command = "#{@@java_path} -Xmx512m -Djava.awt.headless=true -jar \"#{@@jar_path}\" -configure.fonts \"#{@@font_path}\" 2>&1"
+    
+    # Execute
+    result = IO.popen(font_command) { |s| s.read }
+
+    # Check whether the program really was executed
+    if $?.exitstatus == 127
+      raise PD4MLException.new("Sorry. Could not build font properties file. Giving up!")
+    else
+      return result
+    end
+  end
+  
+  
 private  
   
   # Create a temp file from the content and return the path to the
@@ -221,7 +243,7 @@ private
     
     command_options  
   end
-  
+    
   # Builds permissions for the PDF encryption
   # The permission flags are 65472 (decimal) or
   # 1111111111000000 (binary).  Bits 0 and 1 are reserved (always 0), bit
