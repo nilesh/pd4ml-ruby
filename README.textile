@@ -95,7 +95,8 @@ This creates a @pd4fonts.properties@ file in the fonts directory. This file is r
 
 h2. TODO
 
-Lots of things!
+* Support for static and dynamic headers and footers
+* Lots of things
 
 h2. License
 
