@@ -5,6 +5,10 @@
  * Author: Nilesh Chaudhari
  * 
  * Released under MIT license 
+ *
+ * - Revision
+ * -- Added another command line option to pass in the basic auth header
+ *
 */
 
 import java.awt.Dimension;
@@ -12,6 +16,7 @@ import java.awt.Insets;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.StringTokenizer;
+import java.util.*;
 
 import org.zefer.pd4ml.PD4Constants;
 import org.zefer.pd4ml.PD4ML;
@@ -29,6 +34,7 @@ public class Pd4Ruby {
 	  "  [--ttf <ttf_fonts_dir>] \\\n" +
 	  "  [--header '<html_text>'] \\\n" +
 	  "  [--footer '<html_text>'] \\\n" +
+	  "  [--basicauth user:password] \\\n" +
 	  "  [--debug]";
 	
 	public static void main(String[] args) throws Exception {
@@ -46,6 +52,7 @@ public class Pd4Ruby {
 		String password = null;
 		String header = null;
 		String footer = null;
+		String basicauth = null;
 
 		boolean formatSet = false;
 		
@@ -171,6 +178,17 @@ public class Pd4Ruby {
 				footer = args[i];
 				continue;
 			}
+			
+			if ( "--basicauth".equals( args[i] ) ) {
+				++i;
+				if ( i == args.length ) {
+					System.out.println("invalid parameter: user name and password for basic auth");
+					System.out.println( USAGE );
+					return; 
+				}
+				basicauth = args[i];
+				continue;
+			}
 						
 			if ( "--debug".equals( args[i] ) ) {
 				debug = 1;
@@ -206,10 +224,10 @@ public class Pd4Ruby {
 		}
 		
 		Pd4Ruby converter = new Pd4Ruby();
-		converter.generatePDF( url, file, width, pagesize, permissions, password, bookmarks, orientation, insets, ttf, header, footer, debug ); 
+		converter.generatePDF( url, file, width, pagesize, permissions, password, bookmarks, orientation, insets, ttf, header, footer, basicauth, debug ); 
 	}
 
-	private void generatePDF(String inputUrl, String inputFile, int htmlWidth, String pageFormat, int permissions, String password, String bookmarks, String orientation, String insets, String fontsDir, String headerBody, String footerBody, int debug)
+	private void generatePDF(String inputUrl, String inputFile, int htmlWidth, String pageFormat, int permissions, String password, String bookmarks, String orientation, String insets, String fontsDir, String headerBody, String footerBody, String basicAuth, int debug)
 			throws Exception {
 
 		PD4ML pd4ml = new PD4ML();
@@ -279,6 +297,12 @@ public class Pd4Ruby {
 			footer.setAreaHeight( -1 ); // autocompute
 			footer.setHtmlTemplate( headerBody ); // autocompute
 			pd4ml.setPageFooter( footer );
+		}
+
+		if(basicAuth != null && basicAuth.length() > 0) {
+			Map<String,String> m = new HashMap<>();
+			m.put(PD4Constants.PD4ML_BASIC_AUTHENTICATION, basicAuth);
+			pd4ml.setDynamicParams(m);
 		}
 
     if ( debug != 0 ) {
